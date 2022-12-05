@@ -136,4 +136,120 @@ import { Module } from '@nestjs/common';
 export class AppModule {}
 ```
 
+## nest cli
+
+- nest cli 를 설치했기 때문에 많은 것을 할 수 있다.
+- 그중 하나 `generate|g` 커맨드 라인으로 nest의 모든것을 생성할 수 있음
+
+### 컨트롤러 생성해보기
+
+- 콘솔에 `nest g co` 입력해서 컨트롤러 생성
+- 컨트롤러의 이름 설정: `movies`
+- 그러면 src/movies 폴더가 만들어지고 컨트롤러가 생성됨
+  - `movies/movies.controller.spec.ts` 테스트할때 쓰는 애(삭제해도됨)
+  - `movies/movies.controller.ts` 컨트롤러
+- app.module.ts 파일의 controllers 에는 해당 컨트롤러가 추가됨
+
+```typescript
+// app.moduel.ts
+import { Module } from '@nestjs/common';
+import { MoviesController } from './movies/movies.controller';
+
+@Module({
+  imports: [],
+  controllers: [MoviesController],
+  providers: [],
+})
+export class AppModule {}
+```
+
+#### movies 컨트롤러에 API 라우터 만들기
+
+- `@Controller('movies')` url의 Entry Point 를 컨트롤한다. (라우터 역할)
+- nestJS 는 무언가가 필요하면 요청을 해야만 한다.
+- `getOne()`에서 요청하는 방법은 `parameter` 를 요청하는것: `@Param()` 파라미터 데코레이터를 사용한다.
+
+```typescript
+import { Controller, Get, Param } from '@nestjs/common';
+
+@Controller('movies') // 'movies' 가 컨트롤러를 위한 url 을 만든다. '/movies' url 일 때 다음 문자열이 표시된다.
+export class MoviesController {
+  @Get()
+  getAll() {
+    return 'this will return all movies'; // url 이 '/movies'에서 나오는 문자
+  }
+
+  @Get('/:id') // url 이 '/movies/1234' 일 경우
+  getOne(@Param('id') id: string) {
+    // url 에 있는 id라는 parameter 를 얻길 원하면
+    return `this will return one movie with id: ${id}`;
+  }
+}
+```
+
+```typescript
+import { Controller, Get, Param } from '@nestjs/common';
+
+@Controller('movies') // 'movies' 가 컨트롤러를 위한 url 을 만든다. '/movies' url 일 때 다음 문자열이 표시된다.
+  getOne(@Param('id') movieId: string) {
+    // url 에 있는 id라는 parameter 를 얻길 원하면
+    return `this will return one movie with id: ${movieId}`;
+  }
+
+  getOne(@Param('id') id: string) {
+    // url 에 있는 id라는 parameter 를 얻길 원하면
+    return `this will return one movie with id: ${id}`;
+  }
+```
+
+#### Post 데코레이터, Delete 데코레이터
+
+- @Post() 는 기본적으로 movie 를 생성한다.
+- @Delete() 는 삭제한다.
+- @Patch() 는 삭제한다.
+- @Put() 는 업데이트를 한다. (쓰지말자는 사람이 있음 리소스를 전부 교체하기때문)
+- @Patch() 는 업데이트를 한다. (리소스의 일부분만 업데이트 하기 때문에 Put() 보단 Patch 를 사용 권장)
+
+```typescript
+  @Post()
+  create() {
+    return 'This will create a movie';
+  }
+
+  @Delete('/:id')
+  remove(@Param('id') movieId: string) {
+    return `This will delete a movie with the id: ${movieId}`;
+  }
+
+  @Patch('/:id')
+  patch(@Param('id') movieId: string) {
+    return `This will patch a movie with the id: ${movieId}`;
+  }
+```
+
+- **주의** `/:id` 라우터 밑에 다른 라우트를 정의해버리면 id 를 입력한 것으로 인식하여 정상 작동하지 않으므로 위쪽에 정의하도록 하자
+
+#### @Body 데코레이터
+
+- 서버에 데이터를 전송한다고 해보자(json 바디로). 이를 사용할 때 @Body 데코레이터를 사용한다.
+
+```typescript
+@Post()
+create(@Body() movieData){
+  console.log(movieData)
+}
+```
+
+```typescript
+@Patch(':id')
+  patch(@Param('id') movieId: string, @Body() updateData) {
+    return {
+      updatedMovie: movieId,
+      ...updateData,
+    };
+  }
+```
+
+- `/movie` 에 `POST` 로 `{ "name":"tenet", "director":"nolan" }`json 데이터를 보내면 `movieData` 변수에 담겨서 그게 서버콘솔에 찍힌다.
+
 ## REST API
