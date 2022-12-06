@@ -4,11 +4,11 @@
 
 콘솔에서
 
-1. npm i -g @nestjs/cli
-2. nest new
-3. 프로젝트 명을 입력한다 : hi-nest
-4. 패키지 매니저를 선택한다: npm
-5. 해당 프로젝트를 vscode 로 시작한다.
+1. `npm i -g @nestjs/cli`
+2. `nest new` 로 프로젝트 생성
+3. 프로젝트 명을 입력한다 : `hi-nest`
+4. 패키지 매니저를 선택한다: `npm`
+5. 해당 프로젝트를 `vscode` 로 시작한다.
 
 ## npm 명령어들
 
@@ -64,7 +64,7 @@ export class AppService {
 ## 구조와 아키텍쳐
 
 - NestJs 는 컨트롤러를 비지니스 로직과 구분짓는다
-- 컨트롤러는 url 을 가져오는 역할(GET), function 을 리턴(실행)시키는 역할
+- 컨트롤러는 url 을 매핑하는 역할(GET), function 을 리턴(실행)시키는 역할
 - 그 외 나머지 로직은 전부 AppService. 서비스는 실제로 function 을 가진다. ex) `getHello()`
 
 ```typescript
@@ -98,7 +98,7 @@ export class AppController {
   }
   @Get('/hello')
   sayHello(): string {
-    // getHi말고 sayHello 라고적음(일치할 필요없음)
+    // getHi말고 sayHello 라고적음(컨트롤러와 서비스의 함수명이 일치할 필요없음)
     return this.appService.getHi();
   }
 }
@@ -252,4 +252,115 @@ create(@Body() movieData){
 
 - `/movie` 에 `POST` 로 `{ "name":"tenet", "director":"nolan" }`json 데이터를 보내면 `movieData` 변수에 담겨서 그게 서버콘솔에 찍힌다.
 
-## REST API
+#### @Query() 데코레이터
+
+- 검색할 때 url 에서 쿼리를 가져와 준다.
+
+```typescript
+@Get('search')
+  search(@Query('year') seachingYear: string) {
+    return `We are searching for a movie made after: ${seachingYear}`;
+  }
+```
+
+- `/movies/search?year=2022` 주소에서 `seachingYear = 2022` 가 저장된다.
+
+## single-responsibility principle
+
+- 하나의 module, class 혹은 function 이 하나의 기능을 책임진다는 원리
+
+## Service
+
+### 서비스 생성하기
+
+1. `nest g s` 로 서비스 생성
+2. 서비스 이름을 정한다: `movies`
+3. msrc/movies/ovies.service.ts 파일이 생성된다. (spec파일은 테스트파일)
+4. app.module.ts 파일의 providers 에 해당 서비스가 추가된다.
+
+```typescript
+// src/app.module.ts
+@Module({
+  imports: [],
+  controllers: [MoviesController],
+  providers: [MoviesService],
+})
+```
+
+### 데이터베이스 만들기
+
+- movies.service.ts 에 (fake)데이터베이스를 만들어보자
+
+```typescript
+// movie.entity.ts 데이터의 모습을 설명해준다.
+export class Movie {
+  id: number;
+  title: string;
+  year: number;
+  genres: string[];
+}
+```
+
+```typescript
+// movies.service.ts
+import { Injectable } from '@nestjs/common';
+import { Movie } from './entities/movie.entity';
+
+@Injectable()
+export class MoviesService {
+  private movies: Movie[] = [];
+
+  getAll(): Movie[] {
+    return this.movies;
+  }
+
+  getOne(id: string): Movie {
+    return this.movies.find((movie) => movie.id === +id);
+  }
+
+  deleteOne(id: string): boolean {
+    this.movies.filter((movie) => movie.id !== +id);
+    return true;
+  }
+
+  create(movieData) {
+    this.movies.push({
+      id: this.movies.length + 1,
+      ...movieData,
+    });
+  }
+}
+```
+
+- 서비스에 어떻게 접근할까?
+
+```typescript
+// movie.service.ts
+export class MoviesController {
+  constructor(private readonly moviesService: MoviesService) {}
+
+  @Get()
+  getAll(): Movie[] {
+    return this.moviesService.getAll();
+  }
+```
+
+- MoviesController 는 `MoviesService` 클래스의 `constructor` 를 갖는다.
+- 이를 통해 서비스에서 함수들이 `this.moviesService` 에 접근할 수 있다.
+
+## NotFoundException
+
+- nest 가 제공해주는 예외처리이다
+- HttpException 에서 확장된 기능이다
+
+```typescript
+// movies.service.ts
+import { Injectable, NotFoundException } from '@nestjs/common';
+  getOne(id: string): Movie {
+    const movie = this.movies.find((movie) => movie.id === +id);
+    if (!movie) {
+      throw new NotFoundException(`Movie with ID ${id} not found.`);
+    }
+    return movie;
+  }
+```
