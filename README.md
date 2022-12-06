@@ -252,4 +252,94 @@ create(@Body() movieData){
 
 - `/movie` 에 `POST` 로 `{ "name":"tenet", "director":"nolan" }`json 데이터를 보내면 `movieData` 변수에 담겨서 그게 서버콘솔에 찍힌다.
 
-## REST API
+## 전송되는 데이터(movieData)의 타입 정하기
+
+- 서비스랑 컨트롤러에서 DTO 를 만들어야 한다.
+
+### DTO ( data transfer object )
+
+- src/movies/dto 폴더에 create.movie.dto.ts 파일을 만들자.
+
+```typescript
+// src/movies/dto/create.movied.dto.ts
+export class CreateMovieDto {
+  readonly title: string;
+
+  readonly year: number;
+
+  readonly genres: string[];
+}
+```
+
+```typescript
+// movies.controller.ts
+import { CreateMovieDto } from './dto/create-movie.dto';
+
+  @Post()
+  create(@Body() movieData: CreateMovieDto) {
+    return this.moviesService.create(movieData);
+  }
+```
+
+### DTO 를 통해 데이터의 유효성 검사를 할 수 있다.
+
+1. `npm i class validator class-transformer` 설치
+2. CreateMovieDto 를 위한 데코레이터를 사용하자:
+3. main.ts 에 `appGlobalPipes` 로 `ValidationPipe` 를 넘겨주자
+
+```typescript
+// main.ts
+import { NestFactory } from '@nestjs/core';
+import { AppModule } from './app.module';
+import { ValidationPipe } from '@nestjs/common';
+
+async function bootstrap() {
+  const app = await NestFactory.create(AppModule);
+  app.useGlobalPipes(
+    new ValidationPipe({
+      whitelist: true,
+      forbidNonWhitelisted: true,
+      transform: true,
+    }),
+  );
+  await app.listen(3000);
+}
+bootstrap();
+```
+
+- `whitelist:true` 데코레이터 없는 모든 property 의 객체를 거른다.(서버로 도달 못함)
+- `forbidNonWhitelisted: true,` 이상한걸 보내면 요청 자체를 막아버림
+- `transform:true` 유저들이 보낸 값(string)을 원하는 실제 타입(number)으로 바꿔줌
+-
+
+```typescript
+// dto/create-movie.dto.ts
+// createMovieDto 클래스의 유효성 검사
+import { IsString, IsNumber } from 'class-validator';
+
+export class CreateMovieDto {
+  @IsString()
+  readonly title: string;
+
+  @IsNumber()
+  readonly year: number;
+
+  @IsString({ each: true }) // 모든 요소를 하나씩 검사함
+  readonly genres: string[];
+}
+```
+
+## partial type 사용하기
+
+- `npm i @nestjs/mapped-types` 설치
+- mapped types 은 타입을 변환시키고 사용할 수 있게 한다
+
+```typescript
+// dto/update-movie.dto.ts
+
+import { IsString, IsNumber } from 'class-validator';
+import { PartialType } from '@nestjs/mapped-types';
+import { CreateMovieDto } from './create-movie.dto';
+
+export class UpdateMovieDto extends PartialType(CreateMovieDto) {}
+```
