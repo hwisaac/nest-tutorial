@@ -343,3 +343,62 @@ import { CreateMovieDto } from './create-movie.dto';
 
 export class UpdateMovieDto extends PartialType(CreateMovieDto) {}
 ```
+
+## 더 좋은 구조
+- app.module.ts 의 컨트롤러와 프로바이더에는 appController 와 appService 가 있어야 한다.
+- providers 의 MoviesService 와 controller 의 MoviesController 를 movies.module 로 옮기자.
+
+ ```typescript
+ // src/app.module.ts
+import { Module } from '@nestjs/common';
+import { MoviesController } from './movies/movies.controller';
+import { MoviesService } from './movies/movies.service';
+
+@Module({
+  imports: [],
+  controllers: [MoviesController],
+  providers: [MoviesService],
+})
+export class AppModule {}
+```
+
+## 모듈
+1. `nest g mo` : module 을 생성한다
+2. 모듈의 이름은 movies 로 하자.
+3. app모듈에는 movies모듈을 연결하고
+4. movies 모듈에 MoviesService 와 MoviesController를 옮기자.
+
+
+```typescript
+// app.module.ts
+import { Module } from '@nestjs/common';
+import { MoviesModule } from './movies/movies.module';
+
+@Module({
+  imports: [MoviesModule],
+  controllers: [],
+  providers: [],
+})
+export class AppModule {}
+```
+
+```typescript
+// src/movies.module.ts
+import { Module } from '@nestjs/common';
+import { MoviesController } from './movies.controller';
+import { MoviesService } from './movies.service';
+
+@Module({
+  controllers: [MoviesController],
+  providers: [MoviesService]
+})
+export class MoviesModule {}
+
+```
+
+### app모듈의 컨트롤러와 프로바이더
+- `nest g co` 로 컨트롤러 생성하자
+- 컨트롤러의 이름은 `app`
+- `nest g pr` 로 프로바이더를 생성하자
+- app컨트롤러에서는 home페이지를 만들어준다.
+
